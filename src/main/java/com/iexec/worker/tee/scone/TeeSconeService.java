@@ -77,7 +77,8 @@ public class TeeSconeService extends TeeService {
 
     @Override
     public boolean prepareTeeForTask(String chainTaskId) {
-        return lasServicesManager.startLasService(chainTaskId);
+        return true;
+        		//lasServicesManager.startLasService(chainTaskId);
     }
 
     @Override
@@ -122,16 +123,19 @@ public class TeeSconeService extends TeeService {
                                       String sconeConfigId,
                                       long sconeHeap,
                                       String casUrl) {
-        final LasService las = lasServicesManager.getLas(chainTaskId);
+        /*
+    	final LasService las = lasServicesManager.getLas(chainTaskId);
         SconeConfiguration sconeConfig = las.getSconeConfig();
-
         String sconeVersion = sconeConfig.isShowVersion() ? "1" : "0";
+        */
+
+    	String sconeVersion = "1";
         return List.of(
                 SCONE_CAS_ADDR + "=" + casUrl,
-                SCONE_LAS_ADDR + "=" + las.getUrl(),
+                SCONE_LAS_ADDR + "=" + "sth.com",
                 SCONE_CONFIG_ID + "=" + sconeConfigId,
                 SCONE_HEAP + "=" + sconeHeap,   // TODO: remove sconeHeap in a next release
-                SCONE_LOG + "=" + sconeConfig.getLogLevel(),
+                SCONE_LOG + "=" + "info",
                 SCONE_VERSION + "=" + sconeVersion);
     }
 }

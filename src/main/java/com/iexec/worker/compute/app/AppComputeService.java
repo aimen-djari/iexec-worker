@@ -18,6 +18,7 @@ package com.iexec.worker.compute.app;
 
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.HostConfig;
+import com.github.dockerjava.api.model.DeviceRequest;
 import com.iexec.common.replicate.ReplicateStatusCause;
 import com.iexec.common.utils.IexecEnvUtils;
 import com.iexec.commons.containers.DockerRunFinalStatus;
@@ -33,6 +34,13 @@ import com.iexec.worker.sgx.SgxService;
 import com.iexec.worker.tee.TeeService;
 import com.iexec.worker.tee.TeeServicesManager;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
+
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.Ports;
+import com.github.dockerjava.api.model.PortBinding;
+
+import com.google.common.collect.ImmutableList;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -40,6 +48,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class AppComputeService {
 
     private final WorkerConfigurationService workerConfigService;
@@ -82,19 +91,45 @@ public class AppComputeService {
                     teeService.getAdditionalBindings().stream().map(Bind::parse).collect(Collectors.toList());
             binds.addAll(additionalBindings);
         }
+        
+        /*
+        int hostPort = 6060; // Host port
+        int containerPort = 6060; // Container port
 
+        // Define port bindings
+        Ports portBindings = new Ports();
+        portBindings.bind(ExposedPort.tcp(containerPort), Ports.Binding.bindPort(hostPort));
+        
+        env.add("APP_PORT=" + hostPort);
+        
+        
         HostConfig hostConfig = HostConfig.newHostConfig()
                 .withBinds(binds)
+                .withPortBindings(portBindings)
                 .withDevices(sgxService.getSgxDevices());
+                */
+                
+        HostConfig hostConfig = HostConfig.newHostConfig()
+        		.withBinds(binds)
+        	    .withDeviceRequests(ImmutableList.of(new DeviceRequest()
+        	        .withDriver("nvidia")
+        	        .withCapabilities(ImmutableList.of(ImmutableList.of("gpu")))
+        	        .withDeviceIds(ImmutableList.of("0"))
+        	    )
+        	);
+        	
+        
         // Enclave should be able to connect to the LAS
         if (taskDescription.isTeeTask()) {
             hostConfig.withNetworkMode(workerConfigService.getDockerNetworkName());
         }
+        
         DockerRunRequest runRequest = DockerRunRequest.builder()
                 .hostConfig(hostConfig)
                 .chainTaskId(chainTaskId)
                 .imageUri(taskDescription.getAppUri())
                 .containerName(getTaskContainerName(chainTaskId))
+                //.containerPort(containerPort)
                 .cmd(taskDescription.getCmd())
                 .env(env)
                 .maxExecutionTime(taskDescription.getMaxExecutionTime())
