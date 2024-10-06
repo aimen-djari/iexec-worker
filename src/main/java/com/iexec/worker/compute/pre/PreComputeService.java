@@ -130,6 +130,8 @@ public class PreComputeService {
             teeSessionGenerationError = e.getTeeSessionGenerationError();
             preComputeResponseBuilder.exitCause(teeSessionGenerationErrorToReplicateStatusCause(e.getTeeSessionGenerationError()));
         }
+        
+        /*
 
         // run TEE pre-compute container if needed
         if (teeSessionGenerationError == null &&
@@ -140,7 +142,7 @@ public class PreComputeService {
             final ReplicateStatusCause exitCause = downloadDatasetAndFiles(taskDescription, secureSession);
             preComputeResponseBuilder.exitCause(exitCause);
         }
-
+		*/
         return preComputeResponseBuilder.build();
     }
 
@@ -224,6 +226,7 @@ public class PreComputeService {
             log.error("Tee pre-compute image not found locally [chainTaskId:{}]", chainTaskId);
             return null;
         }
+      //TODO keys are downloaded here
         // run container
         List<String> env = teeServicesManager.getTeeService(taskDescription.getTeeFramework())
                 .buildPreComputeDockerEnv(taskDescription, secureSession);

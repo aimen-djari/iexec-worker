@@ -77,7 +77,8 @@ public class TeeSconeService extends TeeService {
 
     @Override
     public boolean prepareTeeForTask(String chainTaskId) {
-        return lasServicesManager.startLasService(chainTaskId);
+    	return true;
+        //return lasServicesManager.startLasService(chainTaskId);
     }
 
     @Override

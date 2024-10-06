@@ -42,8 +42,14 @@ import com.iexec.worker.utils.WorkflowException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import com.iexec.sms.api.TeeSessionGenerationResponse;
+
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 import static com.iexec.common.replicate.ReplicateStatus.APP_DOWNLOAD_FAILED;
 import static com.iexec.common.replicate.ReplicateStatus.DATA_DOWNLOAD_FAILED;
@@ -227,6 +233,7 @@ public class TaskManagerService {
         if (oErrorStatus.isPresent()) {
             return getFailureResponseAndPrintError(oErrorStatus.get(), context, chainTaskId);
         }
+        
 
         if (!computeManagerService.isAppDownloaded(taskDescription.getAppUri())) {
             return getFailureResponseAndPrintError(APP_NOT_FOUND_LOCALLY,
@@ -256,6 +263,14 @@ public class TaskManagerService {
             );
             return failureResponseAndPrintError;
         }
+        
+        TeeSessionGenerationResponse session = preResponse.getSecureSession();
+        log.info("Creating session [Session:{}]", session.getSessionId().toString());
+        
+        
+        // TODO put xtdx call code here
+        runXTDXcontainer(session.getSessionId().toString(), taskDescription);
+        
 
         AppComputeResponse appResponse =
                 computeManagerService.runCompute(taskDescription,
@@ -285,12 +300,97 @@ public class TaskManagerService {
             return ReplicateActionResponse.failureWithStdout(cause,
                     postResponse.getStdout());
         }
+        
+        
         return ReplicateActionResponse.successWithLogs(
                 ComputeLogs.builder()
                         .stdout(appResponse.getStdout())
                         .stderr(appResponse.getStderr())
                         .build()
         );
+    }
+    
+    public void runXTDXcontainer(String sessionId, TaskDescription taskDescription) {
+        try {
+        	
+        	
+            // Define variables for unknown elements
+            String platformIp = "localhost";          // e.g., "192.168.1.100"
+            String imageName = taskDescription.getAppUri().toString();         // e.g., "myImage:latest"
+            String kmsEndpoint = "20.185.225.192:3333";        // e.g., "kms1.endpoint"
+            String containerName = taskDescription.getChainTaskId();            // Name of the container
+            int targetPort = 8080;                       // Target port inside the container
+            int publishedPort = 30001;                   // Port published on the host
+
+            // Auth information (set it if needed)
+            String userName = "";                        // User for image registry
+            String password = "";                        // Password for image registry
+
+            // Mounts information
+            String mountType = "volume";                 // Mount type
+            String targetMount = "inner2";               // Target mount inside the container
+            String sourceMount = "test-api";             // Volume source name
+            boolean isRW = true;                         // Read/Write permission
+
+            // Construct the URL using the platform IP
+            URL url = new URL("http://" + platformIp + ":8383/sw/api/v1/container");
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+            // Set up the connection
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setDoOutput(true); // Enable input/output for the connection
+
+            // Define the JSON payload using variables
+            String jsonPayload = "{\n" +
+                    "  \"Name\": \"" + containerName + "\",\n" +
+                    "  \"ImageInfo\": {\n" +
+                    "    \"ImageName\": \"" + imageName + "\",\n" +
+                    "    \"RegisterAuthInfo\": {\n" +
+                    "      \"UserName\": \"" + userName + "\",\n" +
+                    "      \"Password\": \"" + password + "\"\n" +
+                    "    }\n" +
+                    "  },\n" +
+                    "  \"Ports\": [\n" +
+                    "    {\n" +
+                    "      \"TargetPort\": " + targetPort + ",\n" +
+                    "      \"PublishedPort\": " + publishedPort + "\n" +
+                    "    }\n" +
+                    "  ],\n" +
+                    "  \"Env\": [\n" +
+                    "    \"userId=secret-" + kmsEndpoint + "\"\n" +
+                    "  ],\n" +
+                    "  \"Mounts\": [\n" +
+                    "    {\n" +
+                    "      \"Type\": \"" + mountType + "\",\n" +
+                    "      \"Target\": \"" + targetMount + "\",\n" +
+                    "      \"Source\": \"" + sourceMount + "\",\n" +
+                    "      \"RW\": " + isRW + "\n" +
+                    "    }\n" +
+                    "  ],\n" +
+                    "  \"KmsEndpoints\": [\n" +
+                    "    \"" + kmsEndpoint + "\"\n" +
+                    "  ]\n" +
+                    "  \"SessionId\": [\n" +
+                    "    \"" + sessionId + "\"\n" +
+                    "  ]\n" +
+                    "}";
+
+            // Send the request
+            try (OutputStream os = connection.getOutputStream()) {
+                byte[] input = jsonPayload.getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            // Get the response code
+            int responseCode = connection.getResponseCode();
+            System.out.println("Response Code: " + responseCode);
+
+            // You can process the response here if needed (e.g., read InputStream)
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
