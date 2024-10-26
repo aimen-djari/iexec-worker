@@ -24,9 +24,12 @@ import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
 import com.iexec.commons.poco.notification.TaskNotificationExtra;
 import com.iexec.commons.poco.task.TaskDescription;
+import com.iexec.common.utils.IexecEnvUtils;
+import com.iexec.common.utils.IexecFileHelper;
 import com.iexec.worker.chain.ContributionService;
 import com.iexec.worker.chain.IexecHubService;
 import com.iexec.worker.chain.RevealService;
+import com.iexec.worker.config.WorkerConfigurationService;
 import com.iexec.worker.compute.ComputeManagerService;
 import com.iexec.worker.compute.app.AppComputeResponse;
 import com.iexec.worker.compute.post.PostComputeResponse;
@@ -39,8 +42,10 @@ import com.iexec.worker.tee.TeeService;
 import com.iexec.worker.tee.TeeServicesManager;
 import com.iexec.worker.utils.LoggingUtils;
 import com.iexec.worker.utils.WorkflowException;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
 
 import com.iexec.sms.api.TeeSessionGenerationResponse;
 
@@ -50,6 +55,13 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import org.json.JSONObject; 
+import org.json.JSONArray; 
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static com.iexec.common.replicate.ReplicateStatus.APP_DOWNLOAD_FAILED;
 import static com.iexec.common.replicate.ReplicateStatus.DATA_DOWNLOAD_FAILED;
@@ -73,6 +85,7 @@ public class TaskManagerService {
     private final ResultService resultService;
     private final DockerService dockerService;
     private final SubscriptionService subscriptionService;
+    private final WorkerConfigurationService workerConfigService;
     private final PurgeService purgeService;
     private final String workerWalletAddress;
 
@@ -86,6 +99,7 @@ public class TaskManagerService {
             ResultService resultService,
             DockerService dockerService,
             SubscriptionService subscriptionService,
+            WorkerConfigurationService workerConfigService,
             PurgeService purgeService,
             String workerWalletAddress) {
         this.iexecHubService = iexecHubService;
@@ -97,6 +111,7 @@ public class TaskManagerService {
         this.resultService = resultService;
         this.dockerService = dockerService;
         this.subscriptionService = subscriptionService;
+        this.workerConfigService = workerConfigService;
         this.purgeService = purgeService;
         this.workerWalletAddress = workerWalletAddress;
     }
@@ -268,37 +283,23 @@ public class TaskManagerService {
         log.info("Creating session [Session:{}]", session.getSessionId().toString());
         
         
-        // TODO put xtdx call code here
-        runXTDXcontainer(session.getSessionId().toString(), taskDescription);
+        AppComputeResponse appResponse = runXTDXcontainer(session.getSessionId().toString(), taskDescription);
         
-
-        AppComputeResponse appResponse =
-                computeManagerService.runCompute(taskDescription,
-                        preResponse.getSecureSession());
-        if (!appResponse.isSuccessful()) {
-            final ReplicateStatusCause cause = appResponse.getExitCause();
-            logError(cause, context, chainTaskId);
-            return ReplicateActionResponse.failureWithDetails(
-                    ReplicateStatusDetails.builder()
-                            .cause(cause)
-                            .exitCode(appResponse.getExitCode())
-                            .computeLogs(
-                                    ComputeLogs.builder()
-                                            .stdout(appResponse.getStdout())
-                                            .stderr(appResponse.getStderr())
-                                            .build()
-                            )
-                            .build());
-        }
-
-        PostComputeResponse postResponse =
-                computeManagerService.runPostCompute(taskDescription,
-                        preResponse.getSecureSession());
-        if (!postResponse.isSuccessful()) {
-            ReplicateStatusCause cause = postResponse.getExitCause();
-            logError(cause, context, chainTaskId);
-            return ReplicateActionResponse.failureWithStdout(cause,
-                    postResponse.getStdout());
+        log.info("App response [App Response:{}]", appResponse.toString());
+        
+        if(!appResponse.isSuccessful()) {
+        	final ReplicateStatusCause cause = appResponse.getExitCause();
+        	 return ReplicateActionResponse.failureWithDetails(
+                     ReplicateStatusDetails.builder()
+                             .cause(cause)
+                             .exitCode(appResponse.getExitCode())
+                             .computeLogs(
+                                     ComputeLogs.builder()
+                                             .stdout(appResponse.getStdout())
+                                             .stderr(appResponse.getStderr())
+                                             .build()
+                             )
+                             .build());
         }
         
         
@@ -310,27 +311,32 @@ public class TaskManagerService {
         );
     }
     
-    public void runXTDXcontainer(String sessionId, TaskDescription taskDescription) {
+    public AppComputeResponse runXTDXcontainer(String sessionId, TaskDescription taskDescription) {
+    	deletePreviousXTDXcontainer();
+    	
+    	 ReplicateStatusCause exitCause = null;
+         String stdout = "";
+         String stderr = "";
+         int exitCode = 0;
+         
         try {
-        	
-        	
             // Define variables for unknown elements
-            String platformIp = "localhost";          // e.g., "192.168.1.100"
+            String platformIp = "192.168.122.5";          // e.g., "192.168.1.100"
             String imageName = taskDescription.getAppUri().toString();         // e.g., "myImage:latest"
             String kmsEndpoint = "20.185.225.192:3333";        // e.g., "kms1.endpoint"
-            String containerName = taskDescription.getChainTaskId();            // Name of the container
+            String chainTaskId = taskDescription.getChainTaskId();            // taskid
             int targetPort = 8080;                       // Target port inside the container
             int publishedPort = 30001;                   // Port published on the host
+            
+            //final List<String> env = IexecEnvUtils.getComputeStageEnvList(taskDescription);
+            final String cmd = taskDescription.getCmd();
+            final long maxExecutionTime = taskDescription.getMaxExecutionTime();
+            
+            String workerHost = workerConfigService.getWorkerHost();
 
             // Auth information (set it if needed)
             String userName = "";                        // User for image registry
             String password = "";                        // Password for image registry
-
-            // Mounts information
-            String mountType = "volume";                 // Mount type
-            String targetMount = "inner2";               // Target mount inside the container
-            String sourceMount = "test-api";             // Volume source name
-            boolean isRW = true;                         // Read/Write permission
 
             // Construct the URL using the platform IP
             URL url = new URL("http://" + platformIp + ":8383/sw/api/v1/container");
@@ -341,56 +347,161 @@ public class TaskManagerService {
             connection.setRequestProperty("Content-Type", "application/json");
             connection.setDoOutput(true); // Enable input/output for the connection
 
-            // Define the JSON payload using variables
-            String jsonPayload = "{\n" +
-                    "  \"Name\": \"" + containerName + "\",\n" +
-                    "  \"ImageInfo\": {\n" +
-                    "    \"ImageName\": \"" + imageName + "\",\n" +
-                    "    \"RegisterAuthInfo\": {\n" +
-                    "      \"UserName\": \"" + userName + "\",\n" +
-                    "      \"Password\": \"" + password + "\"\n" +
-                    "    }\n" +
-                    "  },\n" +
-                    "  \"Ports\": [\n" +
-                    "    {\n" +
-                    "      \"TargetPort\": " + targetPort + ",\n" +
-                    "      \"PublishedPort\": " + publishedPort + "\n" +
-                    "    }\n" +
-                    "  ],\n" +
-                    "  \"Env\": [\n" +
-                    "    \"userId=secret-" + kmsEndpoint + "\"\n" +
-                    "  ],\n" +
-                    "  \"Mounts\": [\n" +
-                    "    {\n" +
-                    "      \"Type\": \"" + mountType + "\",\n" +
-                    "      \"Target\": \"" + targetMount + "\",\n" +
-                    "      \"Source\": \"" + sourceMount + "\",\n" +
-                    "      \"RW\": " + isRW + "\n" +
-                    "    }\n" +
-                    "  ],\n" +
-                    "  \"KmsEndpoints\": [\n" +
-                    "    \"" + kmsEndpoint + "\"\n" +
-                    "  ]\n" +
-                    "  \"SessionId\": [\n" +
-                    "    \"" + sessionId + "\"\n" +
-                    "  ]\n" +
-                    "}";
+         // Constructing the JSON payload using JSONObject
+            JSONObject imageInfo = new JSONObject()
+                .put("ImageName", imageName)
+                .put("RegisterAuthInfo", new JSONObject()
+                    .put("UserName", userName)
+                    .put("Password", password))
+                .put("Cmd", cmd)
+                .put("MaxExecutionTime", maxExecutionTime);
+
+            JSONArray portsArray = new JSONArray()
+                .put(new JSONObject()
+                    .put("TargetPort", targetPort)
+                    .put("PublishedPort", publishedPort));
+
+            JSONArray mountsArray = new JSONArray()
+                .put(new JSONObject()
+                    .put("Type", "bind")
+                    .put("Target", IexecFileHelper.SLASH_IEXEC_IN)
+                    .put("Source", workerConfigService.getTaskInputDir(chainTaskId))
+                    .put("RW", false))
+                .put(new JSONObject()
+                    .put("Type", "bind")
+                    .put("Target", IexecFileHelper.SLASH_IEXEC_OUT)
+                    .put("Source", workerConfigService.getTaskIexecOutDir(chainTaskId))
+                    .put("RW", true));
+
+            // Final JSON payload
+            JSONObject jsonPayload = new JSONObject()
+                .put("Name", chainTaskId)
+                .put("ImageInfo", imageInfo)
+                .put("Ports", portsArray)
+                .put("Env", new JSONArray())  // Empty array for environment variables
+                .put("Mounts", mountsArray)
+                .put("KmsEndpoints", new JSONArray().put(kmsEndpoint))
+                .put("SessionId", sessionId)
+                .put("WorkerHost", workerHost);
+            
+            log.info("JsonPayload: [jsonPayload:{}]", jsonPayload.toString());
 
             // Send the request
             try (OutputStream os = connection.getOutputStream()) {
-                byte[] input = jsonPayload.getBytes(StandardCharsets.UTF_8);
+                byte[] input = jsonPayload.toString().getBytes(StandardCharsets.UTF_8);
                 os.write(input, 0, input.length);
             }
 
             // Get the response code
             int responseCode = connection.getResponseCode();
-            System.out.println("Response Code: " + responseCode);
+            log.info("Response Code: [responseCode:{}]", responseCode);
 
             // You can process the response here if needed (e.g., read InputStream)
+            if (responseCode >= 200 && responseCode < 300) {
+                // Read the response
+                try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        response.append(line);
+                    }
+                    
+                    String responseBody = response.toString();
+                    
+                    ObjectMapper mapper = new ObjectMapper();
 
+                    // Parse the main JSON object
+                    JsonNode rootNode = mapper.readTree(responseBody);
+
+                    // Parse the message field as a JSON object
+                    JsonNode messageNode = mapper.readTree(rootNode.get("message").asText());
+
+                    String exitCauseString = messageNode.get("ExitCause").asText();
+                    
+                    exitCause = null;
+                    stdout = messageNode.get("Stdout").asText();
+                    stderr = messageNode.get("Stderr").asText();
+                    exitCode = messageNode.get("ExitCode").asInt();
+                }
+            } else {
+                // If the response code is not successful, log the error
+                log.error("Failed to execute container. Response Code: {}", responseCode);
+                try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(connection.getErrorStream(), StandardCharsets.UTF_8))) {
+                    StringBuilder errorResponse = new StringBuilder();
+                    String errorLine;
+                    while ((errorLine = errorReader.readLine()) != null) {
+                        errorResponse.append(errorLine);
+                    }
+                    log.error("Error response: {}", errorResponse.toString());
+                    String responseBody = errorResponse.toString();
+                    
+                    ObjectMapper mapper = new ObjectMapper();
+
+                    // Parse the main JSON object
+                    JsonNode rootNode = mapper.readTree(responseBody);
+
+                    // Parse the message field as a JSON object
+                    JsonNode messageNode = mapper.readTree(rootNode.get("message").asText());
+
+                    String exitCauseString = messageNode.get("ExitCause").asText();
+                    
+                    exitCause = ReplicateStatusCause.APP_COMPUTE_FAILED;
+                    stdout = messageNode.get("Stdout").asText();
+                    stderr = messageNode.get("Stderr").asText();
+                    exitCode = messageNode.get("ExitCode").asInt();
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
+        
+        
+        
+        
+        return AppComputeResponse.builder()
+                .exitCause(exitCause)
+                .stdout(stdout)
+                .stderr(stderr)
+                .exitCode(exitCode)
+                .build();
+    }
+    
+    public void deletePreviousXTDXcontainer() {
+    	log.info("Deleting previous xTDX container");
+        try {
+        	
+        	
+            // Define variables for unknown elements
+            String platformIp = "192.168.122.5";
+
+            // Construct the URL using the platform IP
+            URL url = new URL("http://" + platformIp + ":8383/sw/api/v1/container");
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+            // Set up the connection
+            connection.setRequestMethod("DELETE");
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setDoOutput(true); // Enable input/output for the connection
+
+         
+
+            // Final JSON payload
+            JSONObject jsonPayload = new JSONObject();
+
+            // Send the request
+            try (OutputStream os = connection.getOutputStream()) {
+                byte[] input = jsonPayload.toString().getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            // Get the response code
+            int responseCode = connection.getResponseCode();
+            log.info("Response Code: [responseCode:{}]", responseCode);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
     }
 
     /**

@@ -17,6 +17,7 @@ worker:
   developer-logger-enabled: ${IEXEC_DEVELOPER_LOGGER_ENABLED:false}
   tee-compute-max-heap-size-gb: ${IEXEC_WORKER_TEE_COMPUTE_MAX_HEAP_SIZE_GB:8}
   docker-network-name: ${IEXEC_WORKER_DOCKER_NETWORK_NAME:iexec-worker-net}
+  host: ${IEXEC_WORKER_HOST:192.168.122.1}
 
 docker:
   registries:

@@ -65,6 +65,10 @@ public class WorkerConfigurationService {
     @Value("${worker.docker-network-name}")
     @Getter
     private String dockerNetworkName;
+    
+    @Value("${worker.host}")
+    @Getter
+    private String workerHost;
 
     @PostConstruct
     private void postConstruct() {

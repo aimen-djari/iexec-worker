@@ -44,9 +44,8 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
+import java.nio.file.*;
 
 import static com.iexec.commons.poco.chain.DealParams.DROPBOX_RESULT_STORAGE_PROVIDER;
 import static com.iexec.commons.poco.chain.DealParams.IPFS_RESULT_STORAGE_PROVIDER;
@@ -402,7 +401,9 @@ public class ResultService implements Purgeable {
         ObjectMapper mapper = new ObjectMapper();
         try {
             String json = mapper.writeValueAsString(computedFile);
-            Files.write(Paths.get(computedFilePath), json.getBytes());
+            Path path = Paths.get(computedFilePath);
+            Files.createDirectories(path.getParent());
+            Files.write(Paths.get(computedFilePath), json.getBytes(), StandardOpenOption.CREATE);
         } catch (IOException e) {
             log.error("Cannot write computed file if write failed [chainTaskId:{}, computedFile:{}]",
                     chainTaskId, computedFile, e);

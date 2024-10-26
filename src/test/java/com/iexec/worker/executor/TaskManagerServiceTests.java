@@ -31,6 +31,7 @@ import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.worker.chain.ContributionService;
 import com.iexec.worker.chain.IexecHubService;
 import com.iexec.worker.chain.RevealService;
+import com.iexec.worker.config.WorkerConfigurationService;
 import com.iexec.worker.compute.ComputeManagerService;
 import com.iexec.worker.compute.app.AppComputeResponse;
 import com.iexec.worker.compute.post.PostComputeResponse;
@@ -42,6 +43,7 @@ import com.iexec.worker.result.ResultService;
 import com.iexec.worker.tee.TeeService;
 import com.iexec.worker.tee.TeeServicesManager;
 import com.iexec.worker.utils.WorkflowException;
+
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -89,6 +91,8 @@ class TaskManagerServiceTests {
     @Mock
     private SubscriptionService subscriptionService;
     @Mock
+    private WorkerConfigurationService workerConfigService;
+    @Mock
     private PurgeService purgeService;
 
     @Mock
@@ -112,6 +116,7 @@ class TaskManagerServiceTests {
                 resultService,
                 dockerService,
                 subscriptionService,
+                workerConfigService,
                 purgeService,
                 WORKER_ADDRESS
         );

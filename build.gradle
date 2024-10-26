@@ -45,6 +45,8 @@ dependencyManagement {
 }
 
 dependencies {
+	//other
+	implementation "org.json:json:20230227"
     // iexec
     implementation "com.iexec.commons:iexec-commons-poco:$iexecCommonsPocoVersion"
     implementation "com.iexec.common:iexec-common:$iexecCommonVersion"
