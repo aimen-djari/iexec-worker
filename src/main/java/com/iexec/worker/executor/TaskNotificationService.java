@@ -120,21 +120,23 @@ public class TaskNotificationService {
                 break;
             case PLEASE_DOWNLOAD_APP:
                 updateStatusAndGetNextAction(chainTaskId, APP_DOWNLOADING);
-                actionResponse = taskManagerService.downloadApp(taskDescription);
-                if (actionResponse.isSuccess()) {
+                actionResponse = ReplicateActionResponse.success();
+                //actionResponse = taskManagerService.downloadApp(taskDescription);
+                //if (actionResponse.isSuccess()) {
                     nextAction = updateStatusAndGetNextAction(chainTaskId, APP_DOWNLOADED, actionResponse.getDetails());
-                } else {
-                    nextAction = updateStatusAndGetNextAction(chainTaskId, APP_DOWNLOAD_FAILED, actionResponse.getDetails());
-                }
+                //} else {
+                //    nextAction = updateStatusAndGetNextAction(chainTaskId, APP_DOWNLOAD_FAILED, actionResponse.getDetails());
+                //}
                 break;
             case PLEASE_DOWNLOAD_DATA:
                 updateStatusAndGetNextAction(chainTaskId, DATA_DOWNLOADING);
-                actionResponse = taskManagerService.downloadData(taskDescription);
-                if (actionResponse.isSuccess()) {
+                actionResponse = ReplicateActionResponse.success();
+                //actionResponse = taskManagerService.downloadData(taskDescription);
+                //if (actionResponse.isSuccess()) {
                     nextAction = updateStatusAndGetNextAction(chainTaskId, DATA_DOWNLOADED, actionResponse.getDetails());
-                } else {
-                    nextAction = updateStatusAndGetNextAction(chainTaskId, DATA_DOWNLOAD_FAILED, actionResponse.getDetails());
-                }
+                //} else {
+                //    nextAction = updateStatusAndGetNextAction(chainTaskId, DATA_DOWNLOAD_FAILED, actionResponse.getDetails());
+                //}
                 break;
             case PLEASE_COMPUTE:
                 updateStatusAndGetNextAction(chainTaskId, COMPUTING);
