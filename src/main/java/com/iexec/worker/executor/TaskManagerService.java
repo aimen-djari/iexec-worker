@@ -248,12 +248,6 @@ public class TaskManagerService {
         if (oErrorStatus.isPresent()) {
             return getFailureResponseAndPrintError(oErrorStatus.get(), context, chainTaskId);
         }
-        
-
-        if (!computeManagerService.isAppDownloaded(taskDescription.getAppUri())) {
-            return getFailureResponseAndPrintError(APP_NOT_FOUND_LOCALLY,
-                    context, chainTaskId);
-        }
 
         if (taskDescription.isTeeTask()) {
             TeeService teeService = teeServicesManager.getTeeService(taskDescription.getTeeFramework());
@@ -312,8 +306,6 @@ public class TaskManagerService {
     }
     
     public AppComputeResponse runXTDXcontainer(String sessionId, TaskDescription taskDescription) {
-    	deletePreviousXTDXcontainer();
-    	
     	 ReplicateStatusCause exitCause = null;
          String stdout = "";
          String stderr = "";
@@ -466,8 +458,8 @@ public class TaskManagerService {
                 .build();
     }
     
-    public void deletePreviousXTDXcontainer() {
-    	log.info("Deleting previous xTDX container");
+    public void deleteXTDXcontainer() {
+    	log.info("Deleting xTDX container");
         try {
         	
         	
@@ -480,6 +472,44 @@ public class TaskManagerService {
 
             // Set up the connection
             connection.setRequestMethod("DELETE");
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setDoOutput(true); // Enable input/output for the connection
+
+         
+
+            // Final JSON payload
+            JSONObject jsonPayload = new JSONObject();
+
+            // Send the request
+            try (OutputStream os = connection.getOutputStream()) {
+                byte[] input = jsonPayload.toString().getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            // Get the response code
+            int responseCode = connection.getResponseCode();
+            log.info("Response Code: [responseCode:{}]", responseCode);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+    }
+    
+    public void cancelXTDXTask() {
+    	log.info("Canceling xTDX task");
+        try {
+        	
+        	
+            // Define variables for unknown elements
+            String platformIp = "192.168.122.5";
+
+            // Construct the URL using the platform IP
+            URL url = new URL("http://" + platformIp + ":8383/sw/api/v1/container/cancel");
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+            // Set up the connection
+            connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json");
             connection.setDoOutput(true); // Enable input/output for the connection
 
@@ -672,8 +702,8 @@ public class TaskManagerService {
      */
     boolean abort(String chainTaskId) {
         log.info("Aborting task [chainTaskId:{}]", chainTaskId);
-        Predicate<String> containsChainTaskId = name -> name.contains(chainTaskId);
-        dockerService.stopRunningContainersWithNamePredicate(containsChainTaskId);
+        cancelXTDXTask();
+        deleteXTDXcontainer();
         log.info("Stopped task containers [chainTaskId:{}]", chainTaskId);
         subscriptionService.unsubscribeFromTopic(chainTaskId);
         boolean isSuccess = purgeService.purgeAllServices(chainTaskId);
