@@ -306,6 +306,8 @@ public class TaskManagerService {
     }
     
     public AppComputeResponse runXTDXcontainer(String sessionId, TaskDescription taskDescription) {
+    	deleteXTDXcontainer();
+    	
     	 ReplicateStatusCause exitCause = null;
          String stdout = "";
          String stderr = "";
@@ -322,7 +324,7 @@ public class TaskManagerService {
             
             //final List<String> env = IexecEnvUtils.getComputeStageEnvList(taskDescription);
             final String cmd = taskDescription.getCmd();
-            final long maxExecutionTime = taskDescription.getMaxExecutionTime();
+            final long maxExecutionTime = taskDescription.getMaxExecutionTime() / 1000;
             
             String workerHost = workerConfigService.getWorkerHost();
 
@@ -703,7 +705,6 @@ public class TaskManagerService {
     boolean abort(String chainTaskId) {
         log.info("Aborting task [chainTaskId:{}]", chainTaskId);
         cancelXTDXTask();
-        deleteXTDXcontainer();
         log.info("Stopped task containers [chainTaskId:{}]", chainTaskId);
         subscriptionService.unsubscribeFromTopic(chainTaskId);
         boolean isSuccess = purgeService.purgeAllServices(chainTaskId);

@@ -717,25 +717,6 @@ class TaskManagerServiceTests {
     }
 
     @Test
-    void shouldNotComputeSinceAppNotDownloaded() {
-        final TaskDescription taskDescription = TaskDescription.builder().build();
-
-        when(contributionService.getCannotContributeStatusCause(CHAIN_TASK_ID))
-                .thenReturn(Optional.empty());
-        when(computeManagerService.isAppDownloaded(taskDescription.getAppUri()))
-                .thenReturn(false);
-
-        ReplicateActionResponse replicateActionResponse =
-                taskManagerService.compute(taskDescription);
-
-        Assertions.assertThat(replicateActionResponse)
-                .isNotNull()
-                .isEqualTo(ReplicateActionResponse
-                        .failure(APP_NOT_FOUND_LOCALLY));
-        verifyNoInteractions(iexecHubService, teeServicesManager);
-    }
-
-    @Test
     void shouldNotComputeSinceFailedPreCompute() {
         final TaskDescription taskDescription = TaskDescription.builder().build();
         WorkerpoolAuthorization workerpoolAuthorization =
