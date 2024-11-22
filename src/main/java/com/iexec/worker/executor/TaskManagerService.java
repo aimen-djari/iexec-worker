@@ -43,6 +43,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.List;
 import java.util.function.Predicate;
 
 import static com.iexec.common.replicate.ReplicateStatus.APP_DOWNLOAD_FAILED;
@@ -182,9 +183,9 @@ public class TaskManagerService {
             if (!taskDescription.containsDataset()) {
                 log.info("No dataset for this task [chainTaskId:{}]", chainTaskId);
             } else {
-                String datasetUri = taskDescription.getDatasetUri();
-                log.info("Downloading dataset [chainTaskId:{}, uri:{}, name:{}]",
-                        chainTaskId, datasetUri, taskDescription.getDatasetName());
+                List<String> datasetUris = taskDescription.getDatasetUris();
+                log.info("Downloading datasets [chainTaskId:{}, uri:{}, name:{}]",
+                        chainTaskId, datasetUris, taskDescription.getDatasetNames());
                 dataService.downloadStandardDataset(taskDescription);
             }
             // download input files for standard task

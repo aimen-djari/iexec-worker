@@ -31,8 +31,10 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Nonnull;
 import java.io.File;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
-
+import java.util.ArrayList;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -52,43 +54,50 @@ public class DataService {
      * @return downloaded dataset file path
      * @throws WorkflowException if download fails or bad checksum.
      */
-    public String downloadStandardDataset(@Nonnull TaskDescription taskDescription)
+    public List<String> downloadStandardDataset(@Nonnull TaskDescription taskDescription)
             throws WorkflowException {
         String chainTaskId = taskDescription.getChainTaskId();
-        String uri = taskDescription.getDatasetUri();
-        String filename = taskDescription.getDatasetAddress();
         String parentDirectoryPath = workerConfigurationService.getTaskInputDir(chainTaskId);
-        String datasetLocalFilePath = "";
-        if (MultiAddressHelper.isMultiAddress(uri)) {
-            for (String ipfsGateway : MultiAddressHelper.IPFS_GATEWAYS) {
-                log.debug("Try to download dataset from {}", ipfsGateway);
-                datasetLocalFilePath =
-                        downloadFile(chainTaskId, ipfsGateway + uri, parentDirectoryPath, filename);
-                if (!datasetLocalFilePath.isEmpty()) {
-                    break;
+        List<String> datasetLocalFilePaths = new ArrayList<String>();
+        for (int i = 0; i < taskDescription.getDatasetUris().size(); i++) {
+            String uri = taskDescription.getDatasetUris().get(i);
+            String filename = taskDescription.getDatasetAddresses().get(i);
+
+            String datasetLocalFilePath = "";
+            if (MultiAddressHelper.isMultiAddress(uri)) {
+                for (String ipfsGateway : MultiAddressHelper.IPFS_GATEWAYS) {
+                    log.debug("Try to download dataset from {}", ipfsGateway);
+                    datasetLocalFilePath = downloadFile(chainTaskId, ipfsGateway + uri, parentDirectoryPath, filename);
+                    if (!datasetLocalFilePath.isEmpty()) {
+                        break;
+                    }
+                }
+            } else {
+                datasetLocalFilePath = downloadFile(chainTaskId, uri, parentDirectoryPath, filename);
+            }
+            if (datasetLocalFilePath.isEmpty()) {
+                throw new WorkflowException(ReplicateStatusCause.DATASET_FILE_DOWNLOAD_FAILED);
+            }
+            String expectedSha256 = taskDescription.getDatasetChecksums().get(i);
+            if (StringUtils.isEmpty(expectedSha256)) {
+                log.warn("INSECURE! Cannot check empty on-chain dataset checksum " +
+                        "[chainTaskId:{}]", chainTaskId);
+            } else {
+                String actualSha256 = FileHashUtils.sha256(new File(datasetLocalFilePath));
+                if (!expectedSha256.equals(actualSha256)) {
+                    log.error("Dataset checksum mismatch [chainTaskId:{}, " +
+                            "expected:{}, actual:{}]", chainTaskId, expectedSha256,
+                            actualSha256);
+                    throw new WorkflowException(ReplicateStatusCause.DATASET_FILE_BAD_CHECKSUM);
                 }
             }
-        } else {
-            datasetLocalFilePath =
-                    downloadFile(chainTaskId, uri, parentDirectoryPath, filename);
+            
+            datasetLocalFilePaths.add(datasetLocalFilePath);
         }
-        if (datasetLocalFilePath.isEmpty()) {
-            throw new WorkflowException(ReplicateStatusCause.DATASET_FILE_DOWNLOAD_FAILED);
-        }
-        String expectedSha256 = taskDescription.getDatasetChecksum();
-        if (StringUtils.isEmpty(expectedSha256)) {
-            log.warn("INSECURE! Cannot check empty on-chain dataset checksum " +
-                    "[chainTaskId:{}]", chainTaskId);
-            return datasetLocalFilePath;
-        }
-        String actualSha256 = FileHashUtils.sha256(new File(datasetLocalFilePath));
-        if (!expectedSha256.equals(actualSha256)) {
-            log.error("Dataset checksum mismatch [chainTaskId:{}, " +
-                    "expected:{}, actual:{}]", chainTaskId, expectedSha256,
-                    actualSha256);
-            throw new WorkflowException(ReplicateStatusCause.DATASET_FILE_BAD_CHECKSUM);
-        }
-        return datasetLocalFilePath;
+
+        
+        
+        return datasetLocalFilePaths;
     }
 
     /**
@@ -96,12 +105,12 @@ public class DataService {
      * in the input folder.
      * 
      * @param chainTaskId Task ID used to create input files download folder
-     * @param uriList List of input files to download
+     * @param uriList     List of input files to download
      * @throws WorkflowException if download fails.
      */
     public void downloadStandardInputFiles(String chainTaskId, @Nonnull List<String> uriList)
             throws WorkflowException {
-        for (String uri: uriList) {
+        for (String uri : uriList) {
             String filename = !StringUtils.isEmpty(uri)
                     ? Paths.get(uri).getFileName().toString()
                     : "";
@@ -116,14 +125,14 @@ public class DataService {
      * Download a file from a URI in the provided parent
      * directory and save it with the provided filename.
      * 
-     * @param chainTaskId Task ID, for logging purpose
-     * @param uri URI of  single file to download
+     * @param chainTaskId         Task ID, for logging purpose
+     * @param uri                 URI of single file to download
      * @param parentDirectoryPath Destination folder on worker host
-     * @param filename Name of downloaded file in destination folder
+     * @param filename            Name of downloaded file in destination folder
      * @return absolute path of the saved file on worker host
      */
     String downloadFile(String chainTaskId, String uri,
-                        String parentDirectoryPath, String filename) {
+            String parentDirectoryPath, String filename) {
         if (StringUtils.isEmpty(chainTaskId) ||
                 StringUtils.isEmpty(uri) ||
                 StringUtils.isEmpty(parentDirectoryPath) ||

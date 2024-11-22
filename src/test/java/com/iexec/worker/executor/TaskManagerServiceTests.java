@@ -122,10 +122,10 @@ class TaskManagerServiceTests {
                 .chainTaskId(CHAIN_TASK_ID)
                 .appType(DappType.DOCKER)
                 .appUri("appUri")
-                .datasetAddress("datasetAddress")
-                .datasetName("datasetName")
-                .datasetChecksum("datasetChecksum")
-                .datasetUri("datasetUri")
+                .datasetAddresses(List.of("datasetAddress"))
+                .datasetNames(List.of("datasetName"))
+                .datasetChecksums(List.of("datasetChecksum"))
+                .datasetUris(List.of("datasetUri"))
                 .isTeeTask(isTeeTask)
                 .inputFiles(List.of("http://file1"));
     }
@@ -320,7 +320,7 @@ class TaskManagerServiceTests {
     @Test
     void shouldReturnSuccessAndNotDownloadDataSinceEmptyUrls() throws Exception {
         final TaskDescription taskDescription = getTaskDescriptionBuilder(false)
-                .datasetUri("")
+                .datasetUris(List.of(""))
                 .inputFiles(null)
                 .build();
         when(contributionService.getCannotContributeStatusCause(CHAIN_TASK_ID))
@@ -341,8 +341,9 @@ class TaskManagerServiceTests {
         final TaskDescription taskDescription = getTaskDescriptionBuilder(false).build();
         when(contributionService.getCannotContributeStatusCause(CHAIN_TASK_ID))
                 .thenReturn(Optional.empty());
+        
         when(dataService.downloadStandardDataset(taskDescription))
-                .thenReturn(PATH_TO_DOWNLOADED_FILE);
+                .thenReturn(List.of(PATH_TO_DOWNLOADED_FILE));
 
         ReplicateActionResponse actionResponse =
                 taskManagerService.downloadData(taskDescription);
@@ -362,7 +363,7 @@ class TaskManagerServiceTests {
         when(contributionService.getCannotContributeStatusCause(CHAIN_TASK_ID))
                 .thenReturn(Optional.empty());
         when(dataService.downloadStandardDataset(taskDescription))
-                .thenReturn(PATH_TO_DOWNLOADED_FILE);
+                .thenReturn(List.of(PATH_TO_DOWNLOADED_FILE));
 
         ReplicateActionResponse actionResponse =
                 taskManagerService.downloadData(taskDescription);
@@ -377,12 +378,12 @@ class TaskManagerServiceTests {
     @Test
     void shouldDownloadInputFilesAndNotDataset() throws Exception {
         final TaskDescription taskDescription = getTaskDescriptionBuilder(false)
-                .datasetAddress("")
+                .datasetAddresses(List.of(""))
                 .build();
         when(contributionService.getCannotContributeStatusCause(CHAIN_TASK_ID))
                 .thenReturn(Optional.empty());
         when(dataService.downloadStandardDataset(taskDescription))
-                .thenReturn(PATH_TO_DOWNLOADED_FILE);
+                .thenReturn(List.of(PATH_TO_DOWNLOADED_FILE));
 
         ReplicateActionResponse actionResponse =
                 taskManagerService.downloadData(taskDescription);
@@ -401,7 +402,7 @@ class TaskManagerServiceTests {
         when(contributionService.getCannotContributeStatusCause(CHAIN_TASK_ID))
                 .thenReturn(Optional.empty());
         when(dataService.downloadStandardDataset(taskDescription))
-                .thenReturn(PATH_TO_DOWNLOADED_FILE);
+                .thenReturn(List.of(PATH_TO_DOWNLOADED_FILE));
 
         ReplicateActionResponse actionResponse =
                 taskManagerService.downloadData(taskDescription);
@@ -484,7 +485,7 @@ class TaskManagerServiceTests {
         when(contributionService.getCannotContributeStatusCause(CHAIN_TASK_ID))
                 .thenReturn(Optional.empty());
         when(dataService.downloadStandardDataset(taskDescription))
-                .thenReturn(PATH_TO_DOWNLOADED_FILE);
+                .thenReturn(List.of(PATH_TO_DOWNLOADED_FILE));
 
         ReplicateActionResponse actionResponse =
                 taskManagerService.downloadData(taskDescription);
@@ -521,7 +522,7 @@ class TaskManagerServiceTests {
     @Test
     void shouldWithInputFilesDownloadData() throws Exception {
         final TaskDescription taskDescription = getTaskDescriptionBuilder(false)
-                .datasetUri("")
+                .datasetUris(List.of(""))
                 .inputFiles(Collections.singletonList("https://ab.cd/ef.jpeg"))
                 .build();
         when(contributionService.getCannotContributeStatusCause(CHAIN_TASK_ID))
@@ -541,7 +542,7 @@ class TaskManagerServiceTests {
     void shouldWithInputFilesDataDownloadFailedAndTriggerPostComputeHookWithSuccess()
             throws Exception {
         final TaskDescription taskDescription = getTaskDescriptionBuilder(false)
-                .datasetUri("")
+                .datasetUris(List.of(""))
                 .inputFiles(Collections.singletonList("https://ab.cd/ef.jpeg"))
                 .build();
         when(contributionService.getCannotContributeStatusCause(CHAIN_TASK_ID))
@@ -566,7 +567,7 @@ class TaskManagerServiceTests {
     void shouldWithInputFilesDataDownloadFailedAndTriggerPostComputeHookWithFailure1()
             throws Exception {
         final TaskDescription taskDescription = getTaskDescriptionBuilder(false)
-                .datasetUri("")
+                .datasetUris(List.of(""))
                 .inputFiles(Collections.singletonList("https://ab.cd/ef.jpeg"))
                 .build();
         when(contributionService.getCannotContributeStatusCause(CHAIN_TASK_ID))
@@ -591,7 +592,7 @@ class TaskManagerServiceTests {
     void shouldWithInputFilesDataDownloadFailedAndTriggerPostComputeHookWithFailure2()
             throws Exception {
         final TaskDescription taskDescription = getTaskDescriptionBuilder(false)
-                .datasetUri("")
+                .datasetUris(List.of(""))
                 .inputFiles(Collections.singletonList("https://ab.cd/ef.jpeg"))
                 .build();
         when(contributionService.getCannotContributeStatusCause(CHAIN_TASK_ID))

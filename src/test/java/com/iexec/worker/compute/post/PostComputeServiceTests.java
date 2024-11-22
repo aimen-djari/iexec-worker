@@ -81,7 +81,7 @@ class PostComputeServiceTests {
     public File jUnitTemporaryFolder;
     private TaskDescription taskDescription = TaskDescription.builder()
             .chainTaskId(CHAIN_TASK_ID)
-            .datasetUri(DATASET_URI)
+            .datasetUris(List.of(DATASET_URI))
             .build();
     private String output;
     private String iexecOut;
@@ -213,7 +213,7 @@ class PostComputeServiceTests {
         String lasNetworkName = "networkName";
         taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
-                .datasetUri(DATASET_URI)
+                .datasetUris(List.of(DATASET_URI))
                 .maxExecutionTime(MAX_EXECUTION_TIME)
                 .build();
         List<String> env = Arrays.asList("var0", "var1");
@@ -272,7 +272,7 @@ class PostComputeServiceTests {
     void shouldNotRunTeePostComputeSinceDockerImageNotFoundLocally() {
         taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
-                .datasetUri(DATASET_URI)
+                .datasetUris(List.of(DATASET_URI))
                 .maxExecutionTime(MAX_EXECUTION_TIME)
                 .build();
         when(postComputeProperties.getImage()).thenReturn(TEE_POST_COMPUTE_IMAGE);
@@ -293,7 +293,7 @@ class PostComputeServiceTests {
     void shouldRunTeePostComputeWithFailDockerResponse(Map.Entry<Integer, ReplicateStatusCause> exitCodeKeyToExpectedCauseValue) {
         taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
-                .datasetUri(DATASET_URI)
+                .datasetUris(List.of(DATASET_URI))
                 .maxExecutionTime(MAX_EXECUTION_TIME)
                 .build();
         List<String> env = Arrays.asList("var0", "var1");
@@ -341,7 +341,7 @@ class PostComputeServiceTests {
     void shouldNotRunTeePostComputeSinceTimeout() {
         taskDescription = TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
-                .datasetUri(DATASET_URI)
+                .datasetUris(List.of(DATASET_URI))
                 .maxExecutionTime(MAX_EXECUTION_TIME)
                 .build();
         List<String> env = Arrays.asList("var0", "var1");

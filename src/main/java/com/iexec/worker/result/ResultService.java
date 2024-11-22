@@ -136,7 +136,7 @@ public class ResultService implements Purgeable {
                 .image(taskDescription.getAppUri())
                 .cmd(taskDescription.getCmd())
                 .deterministHash(computedFile != null ? computedFile.getResultDigest() : "")
-                .datasetUri(taskDescription.getDatasetUri())
+                .datasetUris(new ArrayList<String>(taskDescription.getDatasetUris()))
                 .build();
 
         resultInfoMap.put(chainTaskId, resultInfo);

@@ -69,10 +69,10 @@ class PreComputeServiceTests {
     private final String datasetUri = "datasetUri";
     private final TaskDescription.TaskDescriptionBuilder taskDescriptionBuilder = TaskDescription.builder()
             .chainTaskId(chainTaskId)
-            .datasetAddress("datasetAddress")
-            .datasetUri(datasetUri)
-            .datasetName("datasetName")
-            .datasetChecksum("datasetChecksum")
+            .datasetAddresses(List.of("datasetAddress"))
+            .datasetUris(List.of(datasetUri))
+            .datasetNames(List.of("datasetName"))
+            .datasetChecksums(List.of("datasetChecksum"))
             .teeFramework(TeeFramework.SCONE)
             .appEnclaveConfiguration(TeeEnclaveConfiguration.builder()
                     .fingerprint("01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b")
@@ -204,7 +204,7 @@ class PreComputeServiceTests {
     @Test
     void shouldRunTeePreComputeAndPrepareInputDataWhenOnlyInputFilesArePresent() throws TeeSessionGenerationException {
         final TaskDescription taskDescription = taskDescriptionBuilder
-                .datasetAddress("")
+                .datasetAddresses(List.of(""))
                 .inputFiles(List.of("input-file1"))
                 .build();
 

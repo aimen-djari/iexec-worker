@@ -51,6 +51,7 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.stream.Stream;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -105,7 +106,7 @@ class ComputeManagerServiceTests {
                 .chainTaskId(CHAIN_TASK_ID)
                 .appType(DappType.DOCKER)
                 .appUri(APP_URI)
-                .datasetUri(DATASET_URI)
+                .datasetUris(List.of(DATASET_URI))
                 .maxExecutionTime(MAX_EXECUTION_TIME)
                 .inputFiles(Arrays.asList("file0", "file1"))
                 .isTeeTask(isTeeTask)

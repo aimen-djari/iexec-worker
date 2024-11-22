@@ -68,9 +68,9 @@ class DataServiceTests {
     private TaskDescription.TaskDescriptionBuilder getTaskDescriptionBuilder() {
         return TaskDescription.builder()
                 .chainTaskId(CHAIN_TASK_ID)
-                .datasetUri(HTTP_URI)
-                .datasetChecksum(CHECKSUM)
-                .datasetAddress(DATASET_ADDRESS)
+                .datasetUris(List.of(HTTP_URI))
+                .datasetChecksums(List.of(CHECKSUM))
+                .datasetAddresses(List.of(DATASET_ADDRESS))
                 .isTeeTask(false);
     }
 
@@ -85,20 +85,20 @@ class DataServiceTests {
     @Test
     void shouldDownloadStandardTaskDataset() throws Exception {
         final TaskDescription taskDescription = getTaskDescriptionBuilder().build();
-        String filepath = dataService.downloadStandardDataset(taskDescription);
-        assertThat(filepath).isEqualTo(iexecIn + "/" + DATASET_ADDRESS);
+        List<String> filepaths = dataService.downloadStandardDataset(taskDescription);
+        assertThat(filepaths).isEqualTo(List.of(iexecIn + "/" + DATASET_ADDRESS));
     }
 
     @Test
     void shouldDownloadStandardDatasetFromIexecGateway(CapturedOutput output) throws WorkflowException {
         final TaskDescription taskDescription = getTaskDescriptionBuilder()
-                .datasetUri(IPFS_URI)
+                .datasetUris(List.of(IPFS_URI))
                 .build();
         final URL resourceFile = this.getClass().getClassLoader().getResource(DATASET_RESOURCE_NAME);
         assertThat(resourceFile).isNotNull();
         when(dataService.downloadFile(anyString(), anyString(), anyString(), anyString())).thenReturn(resourceFile.getFile());
-        final String filepath = dataService.downloadStandardDataset(taskDescription);
-        assertThat(filepath).isNotEmpty();
+        final List<String> filepaths = dataService.downloadStandardDataset(taskDescription);
+        assertThat(filepaths).isNotEmpty();
         assertThat(output)
                 .contains(IEXEC_IPFS_DOWNLOAD)
                 .doesNotContain(IO_IPFS_DOWNLOAD)
@@ -108,15 +108,15 @@ class DataServiceTests {
     @Test
     void shouldDownloadStandardDatasetFromIpfsGateway(CapturedOutput output) throws WorkflowException {
         final TaskDescription taskDescription = getTaskDescriptionBuilder()
-                .datasetUri(IPFS_URI)
+                .datasetUris(List.of(IPFS_URI))
                 .build();
         final URL resourceFile = this.getClass().getClassLoader().getResource(DATASET_RESOURCE_NAME);
         assertThat(resourceFile).isNotNull();
         when(dataService.downloadFile(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn("")
                 .thenReturn(resourceFile.getFile());
-        final String filepath = dataService.downloadStandardDataset(taskDescription);
-        assertThat(filepath).isNotEmpty();
+        final List<String> filepaths = dataService.downloadStandardDataset(taskDescription);
+        assertThat(filepaths).isNotEmpty();
         assertThat(output)
                 .contains(IEXEC_IPFS_DOWNLOAD)
                 .contains(IO_IPFS_DOWNLOAD)
@@ -126,7 +126,7 @@ class DataServiceTests {
     @Test
     void shouldDownloadStandardDatasetFromPinataGateway(CapturedOutput output) throws WorkflowException {
         final TaskDescription taskDescription = getTaskDescriptionBuilder()
-                .datasetUri(IPFS_URI)
+                .datasetUris(List.of(IPFS_URI))
                 .build();
         final URL resourceFile = this.getClass().getClassLoader().getResource(DATASET_RESOURCE_NAME);
         assertThat(resourceFile).isNotNull();
@@ -134,8 +134,8 @@ class DataServiceTests {
                 .thenReturn("")
                 .thenReturn("")
                 .thenReturn(resourceFile.getFile());
-        final String filepath = dataService.downloadStandardDataset(taskDescription);
-        assertThat(filepath).isNotEmpty();
+        final List<String> filepaths = dataService.downloadStandardDataset(taskDescription);
+        assertThat(filepaths).isNotEmpty();
         assertThat(output)
                 .contains(IEXEC_IPFS_DOWNLOAD)
                 .contains(IO_IPFS_DOWNLOAD)
@@ -145,7 +145,7 @@ class DataServiceTests {
     @Test
     void shouldNotDownloadDatasetWhenFailureOnAllGateways(CapturedOutput output) throws WorkflowException {
         final TaskDescription taskDescription = getTaskDescriptionBuilder()
-                .datasetUri(IPFS_URI)
+                .datasetUris(List.of(IPFS_URI))
                 .build();
         final URL resourceFile = this.getClass().getClassLoader().getResource(DATASET_RESOURCE_NAME);
         assertThat(resourceFile).isNotNull();
@@ -176,7 +176,7 @@ class DataServiceTests {
     @Test
     void shouldNotDownloadDatasetSinceEmptyUri() {
         final TaskDescription taskDescription = getTaskDescriptionBuilder()
-                .datasetUri("")
+                .datasetUris(List.of(""))
                 .build();
         WorkflowException e = assertThrows(
                 WorkflowException.class,
@@ -189,7 +189,7 @@ class DataServiceTests {
 
     void shouldNotDownloadDatasetSinceEmptyDatasetAddress() {
         final TaskDescription taskDescription = getTaskDescriptionBuilder()
-                .datasetAddress("")
+                .datasetAddresses(List.of(""))
                 .build();
         WorkflowException e = assertThrows(
                 WorkflowException.class,
@@ -212,7 +212,7 @@ class DataServiceTests {
     @Test
     void shouldNotDownloadDatasetSinceBadChecksum() {
         final TaskDescription taskDescription = getTaskDescriptionBuilder()
-                .datasetChecksum("badChecksum")
+                .datasetChecksums(List.of("badChecksum"))
                 .build();
         WorkflowException e = assertThrows(
                 WorkflowException.class,
@@ -224,10 +224,10 @@ class DataServiceTests {
     @Test
     void shouldDownloadDatasetSinceEmptyOnchainChecksum() throws Exception {
         final TaskDescription taskDescription = getTaskDescriptionBuilder()
-                .datasetChecksum("")
+                .datasetChecksums(List.of(""))
                 .build();
         assertThat(dataService.downloadStandardDataset(taskDescription))
-                .isEqualTo(iexecIn + "/" + DATASET_ADDRESS);
+                .isEqualTo(List.of(iexecIn + "/" + DATASET_ADDRESS));
     }
 
     @Test

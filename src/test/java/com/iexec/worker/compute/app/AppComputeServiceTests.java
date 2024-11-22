@@ -66,7 +66,7 @@ class AppComputeServiceTests {
     private final TaskDescription.TaskDescriptionBuilder taskDescriptionBuilder = TaskDescription.builder()
             .chainTaskId(CHAIN_TASK_ID)
             .appUri(APP_URI)
-            .datasetUri(DATASET_URI)
+            .datasetUris(List.of(DATASET_URI))
             .maxExecutionTime(MAX_EXECUTION_TIME)
             .inputFiles(Arrays.asList("file0", "file1"))
             .isTeeTask(true);
