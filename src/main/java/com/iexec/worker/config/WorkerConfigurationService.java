@@ -69,6 +69,14 @@ public class WorkerConfigurationService {
     @Value("${worker.host}")
     @Getter
     private String workerHost;
+    
+    @Value("${worker.conker-host}")
+    @Getter
+    private String conkerHost;
+    
+    @Value("${worker.kms-endpoint}")
+    @Getter
+    private String kmsEndpoint;
 
     @PostConstruct
     private void postConstruct() {

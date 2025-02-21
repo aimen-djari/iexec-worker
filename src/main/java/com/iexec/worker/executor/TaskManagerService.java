@@ -315,9 +315,9 @@ public class TaskManagerService {
          
         try {
             // Define variables for unknown elements
-            String platformIp = "192.168.122.5";          // e.g., "192.168.1.100"
+        	String platformIp = workerConfigService.getConkerHost();
+        	String kmsEndpoint = workerConfigService.getKmsEndpoint();
             String imageName = taskDescription.getAppUri().toString();         // e.g., "myImage:latest"
-            String kmsEndpoint = "20.185.225.192:3333";        // e.g., "kms1.endpoint"
             String chainTaskId = taskDescription.getChainTaskId();            // taskid
             int targetPort = 8080;                       // Target port inside the container
             int publishedPort = 30001;                   // Port published on the host
