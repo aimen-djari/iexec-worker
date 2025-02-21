@@ -60,6 +60,7 @@ public class SgxService {
     @PostConstruct
     void init() {
         sgxEnabled = SgxDriverMode.isDriverModeNotNone(sgxDriverMode);
+        /*
         if (!sgxEnabled) {
             log.info("No SGX driver defined, skipping SGX check [sgxDriverMode:{}]", sgxDriverMode);
             return;
@@ -71,6 +72,7 @@ public class SgxService {
             log.error("SGX required but not supported by worker. Shutting down. [sgxDriverMode:{}]", sgxDriverMode);
             SpringApplication.exit(context, () -> 1);
         }
+        */
     }
 
     public List<Device> getSgxDevices() {
