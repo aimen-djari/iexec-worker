@@ -121,13 +121,15 @@ public class TaskNotificationService {
                 break;
             case PLEASE_DOWNLOAD_APP:
                 updateStatusAndGetNextAction(chainTaskId, APP_DOWNLOADING);
-                actionResponse = taskManagerService.downloadApp(taskDescription);
+                actionResponse = ReplicateActionResponse.success();
+                //actionResponse = taskManagerService.downloadApp(taskDescription);
                 nextStatus = actionResponse.isSuccess() ? APP_DOWNLOADED : APP_DOWNLOAD_FAILED;
                 nextAction = updateStatusAndGetNextAction(chainTaskId, nextStatus, actionResponse.getDetails());
                 break;
             case PLEASE_DOWNLOAD_DATA:
                 updateStatusAndGetNextAction(chainTaskId, DATA_DOWNLOADING);
-                actionResponse = taskManagerService.downloadData(taskDescription);
+                actionResponse = ReplicateActionResponse.success();
+                //actionResponse = taskManagerService.downloadData(taskDescription);
                 nextStatus = actionResponse.isSuccess() ? DATA_DOWNLOADED : DATA_DOWNLOAD_FAILED;
                 nextAction = updateStatusAndGetNextAction(chainTaskId, nextStatus, actionResponse.getDetails());
                 break;

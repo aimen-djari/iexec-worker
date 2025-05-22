@@ -39,11 +39,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
+
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
+import java.nio.file.*;
 
 import static com.iexec.commons.poco.chain.DealParams.DROPBOX_RESULT_STORAGE_PROVIDER;
 import static com.iexec.commons.poco.chain.DealParams.IPFS_RESULT_STORAGE_PROVIDER;
@@ -363,10 +363,12 @@ public class ResultService implements Purgeable {
         }
         try {
             final String json = mapper.writeValueAsString(computedFile);
+            Path path = Paths.get(computedFilePath);
+            Files.createDirectories(path.getParent());
             Files.write(Paths.get(computedFilePath), json.getBytes());
         } catch (IOException e) {
-            log.error("Cannot write computed file if write failed [chainTaskId:{}, computedFile:{}]",
-                    chainTaskId, computedFile, e);
+            log.error("Cannot write computed file if write failed [chainTaskId:{}, computedFile:{}, path:{}, parentPath:{}]",
+                    chainTaskId, computedFile, Paths.get(computedFilePath), Paths.get(computedFilePath).getParent(), e);
             return false;
         }
         return true;

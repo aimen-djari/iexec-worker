@@ -66,10 +66,6 @@ public class WorkerConfigurationService {
     @Getter
     private String dockerNetworkName;
     
-    @Value("${worker.host}")
-    @Getter
-    private String workerHost;
-    
     @Value("${worker.conker-host}")
     @Getter
     private String conkerHost;
