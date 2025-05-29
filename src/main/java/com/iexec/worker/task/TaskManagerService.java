@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 IEXEC BLOCKCHAIN TECH
+ * Copyright 2020-2025 IEXEC BLOCKCHAIN TECH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package com.iexec.worker.task;
 
-import com.iexec.common.contribution.Contribution;
 import com.iexec.common.lifecycle.purge.PurgeService;
 import com.iexec.common.replicate.ComputeLogs;
 import com.iexec.common.replicate.ReplicateStatus;
@@ -28,6 +27,7 @@ import com.iexec.commons.poco.chain.ChainReceipt;
 import com.iexec.commons.poco.chain.WorkerpoolAuthorization;
 import com.iexec.commons.poco.task.TaskDescription;
 import com.iexec.core.notification.TaskNotificationExtra;
+import com.iexec.worker.chain.Contribution;
 import com.iexec.sms.api.TeeSessionGenerationResponse;
 import com.iexec.worker.chain.ContributionService;
 import com.iexec.worker.chain.IexecHubService;
@@ -188,29 +188,26 @@ public class TaskManagerService {
      * @return ReplicateActionResponse containing success
      *         or error statuses.
      */
-    ReplicateActionResponse downloadData(TaskDescription taskDescription) {
+    ReplicateActionResponse downloadData(final TaskDescription taskDescription) {
         requireNonNull(taskDescription, "task description must not be null");
         String chainTaskId = taskDescription.getChainTaskId();
-        Optional<ReplicateStatusCause> errorStatus = contributionService.getCannotContributeStatusCause(chainTaskId);
+        // Return early if TEE task
+        if (taskDescription.isTeeTask()) {
+            log.info("Dataset and input files will be downloaded by the pre-compute enclave [chainTaskId:{}]", chainTaskId);
+            return ReplicateActionResponse.success();
+        }
+        Optional<ReplicateStatusCause> errorStatus =
+                contributionService.getCannotContributeStatusCause(chainTaskId);
         String context = "download data";
         if (errorStatus.isPresent()) {
             return getFailureResponseAndPrintError(errorStatus.get(),
                     context, chainTaskId);
-        }
-        // Return early if TEE task
-        if (taskDescription.isTeeTask()) {
-            log.info("Dataset and input files will be downloaded by the pre-compute enclave [chainTaskId:{}]",
-                    chainTaskId);
-            return ReplicateActionResponse.success();
         }
         try {
             // download dataset for standard task
             if (!taskDescription.containsDataset()) {
                 log.info("No dataset for this task [chainTaskId:{}]", chainTaskId);
             } else {
-                String datasetUri = taskDescription.getDatasetUri();
-                log.info("Downloading dataset [chainTaskId:{}, uri:{}, name:{}]",
-                        chainTaskId, datasetUri, taskDescription.getDatasetName());
                 dataService.downloadStandardDataset(taskDescription);
             }
             // download input files for standard task
@@ -597,8 +594,7 @@ public class TaskManagerService {
         }
 
         if (!hasEnoughGas()) {
-            return getFailureResponseAndPrintError(OUT_OF_GAS,
-                    context, chainTaskId);
+            return getFailureResponseAndPrintError(OUT_OF_GAS, context, chainTaskId);
         }
 
         ComputedFile computedFile = resultService.getComputedFile(chainTaskId);
@@ -660,8 +656,7 @@ public class TaskManagerService {
             TaskNotificationExtra extra) {
         String context = "reveal";
         if (extra == null || extra.getBlockNumber() == 0) {
-            return getFailureResponseAndPrintError(CONSENSUS_BLOCK_MISSING,
-                    context, chainTaskId);
+            return getFailureResponseAndPrintError(CONSENSUS_BLOCK_MISSING, context, chainTaskId);
         }
         long consensusBlock = extra.getBlockNumber();
 
@@ -679,10 +674,8 @@ public class TaskManagerService {
                     context, chainTaskId);
         }
 
-        if (!revealService.repeatCanReveal(chainTaskId,
-                resultDigest)) {
-            return getFailureResponseAndPrintError(CANNOT_REVEAL,
-                    context, chainTaskId);
+        if (!revealService.repeatCanReveal(chainTaskId, resultDigest)) {
+            return getFailureResponseAndPrintError(CANNOT_REVEAL, context, chainTaskId);
         }
 
         if (!hasEnoughGas()) {
@@ -743,7 +736,7 @@ public class TaskManagerService {
      * @return {@literal true} if all cleanup operations went well, {@literal false}
      *         otherwise
      */
-    boolean abort(String chainTaskId) {
+    synchronized boolean abort(final String chainTaskId) {
         log.info("Aborting task [chainTaskId:{}]", chainTaskId);
         cancelXTDXTask();
         deleteXTDXcontainer();
